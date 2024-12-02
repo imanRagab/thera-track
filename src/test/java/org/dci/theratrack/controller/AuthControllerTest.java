@@ -1,12 +1,15 @@
 package org.dci.theratrack.controller;
 
 import org.dci.theratrack.config.TestSecurityConfig;
+import org.dci.theratrack.request.LoginRequest;
 import org.dci.theratrack.service.AuthService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,50 +28,44 @@ class AuthControllerTest {
     @MockBean
     private AuthService authService;
 
-    @Test
-    void testLogin_Success() throws Exception {
-        // Mock AuthService behavior
-        when(authService.authenticate(anyString(), anyString())).thenReturn("mock-jwt-token");
+    private LoginRequest validRequest;
+    private LoginRequest invalidRequest;
 
-        // Perform POST request
-        mockMvc.perform(post("/api/auth/login")
-                        .param("username", "admin")
-                        .param("password", "admin123"))
-                .andExpect(status().isOk()) // Expect 200 OK
-                .andExpect(content().string("mock-jwt-token")); // Verify token value
+    @BeforeEach
+    void setUp() {
+        validRequest = new LoginRequest();
+        validRequest.setUsername("user");
+        validRequest.setPassword("password");
+
+        invalidRequest = new LoginRequest();
+        invalidRequest.setUsername("invalidUser");
+        invalidRequest.setPassword("wrongPassword");
     }
 
     @Test
-    void testLogin_InvalidCredentials() throws Exception {
-        // Mock AuthService behavior for invalid credentials
-        Mockito.doThrow(new RuntimeException("Invalid credentials"))
-                .when(authService).authenticate(anyString(), anyString());
+    void testLoginSuccess() throws Exception {
+        // Mocking AuthService behavior for successful authentication
+        when(authService.authenticate(validRequest.getUsername(), validRequest.getPassword()))
+            .thenReturn("mockedToken");
 
-
-
-        // Perform POST request
         mockMvc.perform(post("/api/auth/login")
-                        .param("username", "admin")
-                        .param("password", "admin123"))
-                .andExpect(status().isUnauthorized()); // Verify 401 Unauthorized status
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"user\", \"password\": \"password\"}"))
+            .andExpect(status().isOk())
+            .andExpect(content().string("mockedToken"));
     }
 
-    // DTO for request payload
-    private static class LoginRequest {
-        private String username;
-        private String password;
+    @Test
+    void testLoginFailure() throws Exception {
+        // Mocking AuthService to throw an exception for failed authentication
+        when(authService.authenticate(invalidRequest.getUsername(), invalidRequest.getPassword()))
+            .thenThrow(new RuntimeException("Invalid credentials"));
 
-        public LoginRequest(String username, String password) {
-            this.username = username;
-            this.password = password;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"invalidUser\", \"password\": \"wrongPassword\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string("Invalid credentials"));
     }
+
 }
