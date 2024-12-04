@@ -15,6 +15,8 @@ import org.dci.theratrack.repository.TreatmentRepository;
 import org.dci.theratrack.request.AppointmentRequest;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -61,7 +63,6 @@ public class AppointmentService {
     if (appointment.getStatus() == null) {
       appointment.setStatus(AppointmentStatus.PENDING);
     }
-
     return appointmentRepository.save(appointment);
   }
 
@@ -96,6 +97,10 @@ public class AppointmentService {
 
   public List<Appointment> getAllAppointments() {
     return appointmentRepository.findAll();
+  }
+
+  public Page<Appointment> getPaginatedAppointments(Pageable pageable) {
+    return appointmentRepository.findAll(pageable);
   }
 
   /**
