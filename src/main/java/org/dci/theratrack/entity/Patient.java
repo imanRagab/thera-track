@@ -1,6 +1,7 @@
 package org.dci.theratrack.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
@@ -91,6 +92,7 @@ public class Patient {
 
 
   @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonIgnore
   private List<Appointment> appointment;
 
   @OneToOne
