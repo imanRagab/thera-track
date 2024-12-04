@@ -47,7 +47,7 @@ public class Appointment {
   @Column(nullable = false)
   private Integer sessionDuration;
 
-  @Enumerated(EnumType.STRING) // Store as a string in the database
+  @Enumerated(EnumType.ORDINAL) // Store as a string in the database
   @Column(nullable = false)
   private AppointmentStatus status;
 
