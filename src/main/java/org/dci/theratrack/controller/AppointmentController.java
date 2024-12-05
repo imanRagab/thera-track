@@ -2,6 +2,8 @@ package org.dci.theratrack.controller;
 
 import java.util.List;
 import java.util.Map;
+
+import org.dci.theratrack.dto.AppointmentDTO;
 import org.dci.theratrack.entity.Appointment;
 import org.dci.theratrack.entity.Treatment;
 import org.dci.theratrack.exceptions.ResourceNotFoundException;
@@ -40,9 +42,9 @@ public class AppointmentController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
-    Appointment appointment = appointmentService.getAppointment(id);
-    return ResponseEntity.ok(appointment);
+  public ResponseEntity<AppointmentDTO> getAppointmentById(@PathVariable Long id) {
+    AppointmentDTO appointmentDTO = appointmentService.getAppointmentById(id);
+    return ResponseEntity.ok(appointmentDTO);
   }
 
   @GetMapping("/patient/{patientId}")

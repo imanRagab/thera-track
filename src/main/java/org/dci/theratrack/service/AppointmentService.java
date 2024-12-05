@@ -1,6 +1,10 @@
 package org.dci.theratrack.service;
 
 import java.util.List;
+
+import org.dci.theratrack.dto.AppointmentDTO;
+import org.dci.theratrack.dto.PatientDTO;
+import org.dci.theratrack.dto.TherapistDTO;
 import org.dci.theratrack.entity.Appointment;
 import org.dci.theratrack.entity.Patient;
 import org.dci.theratrack.entity.Therapist;
@@ -81,6 +85,13 @@ public class AppointmentService {
     return appointmentRepository.findById(appointmentId)
         .orElseThrow(
             () -> new ResourceNotFoundException("Appointment not found with ID: " + appointmentId));
+  }
+  // Method to fetch appointment by ID and map to DTO
+  public AppointmentDTO getAppointmentById(Long id) {
+    Appointment appointment = appointmentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
+
+    return mapToDTO(appointment);
   }
 
 
@@ -195,5 +206,27 @@ public class AppointmentService {
     appointment.setAdditionalNotes(notes);
 
     return appointmentRepository.save(appointment);
+  }
+
+  // Utility method to map an Appointment entity to AppointmentDTO
+  private AppointmentDTO mapToDTO(Appointment appointment) {
+    AppointmentDTO dto = new AppointmentDTO();
+    dto.setId(appointment.getId());
+    dto.setDateTime(appointment.getDateTime());
+    dto.setSessionDuration(appointment.getSessionDuration());
+    dto.setStatus(appointment.getStatus().toString());
+    dto.setAdditionalNotes(appointment.getAdditionalNotes());
+
+    TherapistDTO therapistDTO = new TherapistDTO();
+    therapistDTO.setId(appointment.getTherapist().getId());
+    therapistDTO.setName(appointment.getTherapist().getName());
+    dto.setTherapist(therapistDTO);
+
+    PatientDTO patientDTO = new PatientDTO();
+    patientDTO.setId(appointment.getPatient().getId());
+    patientDTO.setName(appointment.getPatient().getName());
+    dto.setPatient(patientDTO);
+
+    return dto;
   }
 }
