@@ -82,10 +82,5 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     body.put("details", ex.getMessage());
     return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
   }
-
-<<<<<<< HEAD
-
-
-=======
->>>>>>> d74a93871deedef0c1d427fd63b82fe672b950b9
+ 
 }
