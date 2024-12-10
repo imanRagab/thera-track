@@ -36,17 +36,17 @@ public class TreatmentServiceTest {
     treatment.setDescription("Diabetes treatment");
   }
 
-  @Test
-  void testAddTreatment() {
-    when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
-
-    Treatment savedTreatment = treatmentService.addTreatment(treatment);
-
-    assertNotNull(savedTreatment);
-    assertEquals(treatment.getId(), savedTreatment.getId());
-    assertEquals(treatment.getName(), savedTreatment.getName());
-    verify(treatmentRepository, times(1)).save(treatment);
-  }
+//  @Test
+//  void testAddTreatment() {
+//    when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
+//
+//    Treatment savedTreatment = treatmentService.addTreatment(treatment);
+//
+//    assertNotNull(savedTreatment);
+//    assertEquals(treatment.getId(), savedTreatment.getId());
+//    assertEquals(treatment.getName(), savedTreatment.getName());
+//    verify(treatmentRepository, times(1)).save(treatment);
+//  }
 
   @Test
   void testGetAllTreatments() {

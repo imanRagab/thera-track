@@ -15,6 +15,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtRequestFilter jwtRequestFilter) throws Exception {
+
         http.csrf(csrf -> csrf.disable()) // Disable CSRF
             .authorizeHttpRequests((requests) -> requests.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow OPTIONS requests
             .requestMatchers("/api/auth/**").permitAll()
