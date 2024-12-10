@@ -7,6 +7,7 @@ import org.dci.theratrack.enums.UserRole;
 import org.dci.theratrack.exceptions.InvalidRequestException;
 import org.dci.theratrack.exceptions.ResourceNotFoundException;
 import org.dci.theratrack.repository.TherapistRepository;
+import org.dci.theratrack.repository.UserRepository;
 import org.dci.theratrack.request.TherapistRequest;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class TherapistService {
 
   @Autowired
   private PasswordEncoder passwordEncoder;
+
+  @Autowired
+  UserRepository userRepository;
 
   /**
    * Creates a new therapist.
@@ -79,7 +83,9 @@ public class TherapistService {
     return therapistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Therapist not found with ID: " + id));
   }
-
+  public List<Therapist> getAllTherapists() {
+    return therapistRepository.findAll();
+  }
   /**
    * Updates an existing therapist.
    *
