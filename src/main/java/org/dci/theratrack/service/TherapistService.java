@@ -118,7 +118,16 @@ public class TherapistService {
    */
   public void deleteTherapist(Long id) {
     if (!therapistRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Therapist not found with ID: " + id);
+      throw new ResourceNotFoundException("Patient not found with ID: " + id);
+    }
+
+    Therapist therapist = therapistRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Therapist not found with ID: " + id));
+
+    User user = therapist.getUser();
+    if (user != null) {
+
+      userRepository.delete(user);
     }
     therapistRepository.deleteById(id);
   }
