@@ -83,10 +83,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
-  @ExceptionHandler(RuntimeException.class)
-  public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body("Appointment not found: " + ex.getMessage());
-  }
+
 
 }
