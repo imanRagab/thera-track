@@ -1,7 +1,9 @@
 package org.dci.theratrack.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,6 +30,7 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Data
@@ -36,7 +39,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "patients",
     uniqueConstraints = @UniqueConstraint(columnNames = {"email", "phone"}))
 //ensures that the combination of email and phone is unique
-
+@ToString(exclude = {"therapists","diagnoses", "appointment", "user"})
 public class Patient {
 
   @Id
@@ -67,6 +70,7 @@ public class Patient {
 
   @Past // Ensures the birthDate is a past date
   @Column(nullable = false)
+  @JsonProperty("birthdate")
   private LocalDate birthDate;
 
   @Size(max = 500)
@@ -88,13 +92,13 @@ public class Patient {
 
 
   @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonIgnore
   private List<Appointment> appointment;
 
   @OneToOne
   @JoinColumn(name = "user_id", unique = true)
   @JsonBackReference
   private User user;
-
 
 
   public User getUser() {
