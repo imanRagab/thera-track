@@ -1,5 +1,6 @@
 package org.dci.theratrack.controller;
 
+import org.dci.theratrack.request.LoginRequest;
 import org.dci.theratrack.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +14,9 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            String token = authService.authenticate(username, password);
+            String token = authService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
             return ResponseEntity.ok().body(token);
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(e.getMessage());

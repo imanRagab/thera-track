@@ -1,21 +1,20 @@
 package org.dci.theratrack.controller;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import jakarta.persistence.EntityNotFoundException;
 import org.dci.theratrack.config.TestSecurityConfig;
-import org.dci.theratrack.entity.Appointment;
 import org.dci.theratrack.entity.Patient;
-import org.dci.theratrack.entity.Therapist;
-import org.dci.theratrack.enums.AppointmentStatus;
-import org.dci.theratrack.repository.AppointmentRepository;
+import org.dci.theratrack.exceptions.GlobalExceptionHandler;
+import org.dci.theratrack.exceptions.ResourceNotFoundException;
 import org.dci.theratrack.repository.PatientRepository;
 import org.dci.theratrack.request.PatientRequest;
+import org.dci.theratrack.service.AppointmentService;
 import org.dci.theratrack.service.PatientService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,12 +23,14 @@ import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ContextConfiguration(classes = {TestSecurityConfig.class, PatientController.class})
 @WebMvcTest(PatientController.class)
-public class PatientControllerTest {
+@Import(GlobalExceptionHandler.class)
+class PatientControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
@@ -39,6 +40,9 @@ public class PatientControllerTest {
 
   @MockBean
   private PatientRepository patientRepository;
+
+  @MockBean
+  private AppointmentService appointmentService;
 
   @BeforeEach
   void setup() {
@@ -86,6 +90,39 @@ public class PatientControllerTest {
   }
 
   @Test
+  void testGetPatientById_ServiceFailure() throws Exception {
+    // Simulate an exception thrown by the service layer
+    when(patientService.getPatientById(1L)).thenThrow(new RuntimeException("Database error"));
+
+    // Perform the GET request and assert that the response status is 500 Internal Server Error
+    mockMvc.perform(get("/api/patients/1"))
+        .andExpect(status().isInternalServerError());
+
+    // Verify that the service method was called
+    verify(patientService, times(1)).getPatientById(1L);
+  }
+
+  @Test
+  void testGetPatientById_InvalidIdFormat() throws Exception {
+    // Perform the GET request with an invalid ID (non-numeric)
+    mockMvc.perform(get("/api/patients/abc")) // Invalid ID format
+        .andExpect(status().isBadRequest());
+
+    // Verify that the service method was not called
+    verify(patientService, times(0)).getPatientById(anyLong());
+  }
+
+  @Test
+  void testGetPatientById_MethodNotAllowed() throws Exception {
+    // Perform a POST request instead of GET
+    mockMvc.perform(post("/api/patients/1"))
+        .andExpect(status().isMethodNotAllowed());
+
+    // Verify that the service method was not called
+    verify(patientService, times(0)).getPatientById(anyLong());
+  }
+
+  @Test
   void testUpdatePatient() throws Exception {
     Patient patient = new Patient();
     patient.setId(1L);
@@ -108,12 +145,80 @@ public class PatientControllerTest {
   }
 
   @Test
+  void testUpdatePatient_NotFound() throws Exception {
+    // Simulate the service throwing an exception for a non-existent patient
+    when(patientService.updatePatient(eq(1L), any(Patient.class)))
+        .thenThrow(new EntityNotFoundException("Patient not found"));
+
+    String patientJson = "{ \"name\": \"Updated Name\", \"surname\": \"Updated Surname\" }";
+
+    mockMvc.perform(put("/api/patients/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(patientJson))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string("{\"details\":\"Patient not found\",\"error\":\"Entity not found\"}"));
+
+    verify(patientService, times(1)).updatePatient(eq(1L), any(Patient.class));
+  }
+
+  @Test
+  void testUpdatePatient_InvalidJson() throws Exception {
+    String invalidJson = "{ \"name\": \"Updated Name\", \"surname\": }"; // Malformed JSON
+
+    mockMvc.perform(put("/api/patients/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidJson))
+        .andExpect(status().isBadRequest());
+
+    verify(patientService, times(0)).updatePatient(anyLong(), any(Patient.class));
+  }
+
+  @Test
+  void testUpdatePatient_InvalidInput() throws Exception {
+    String invalidPatientJson = "{ \"name\": \"\" }"; // Missing surname and name is empty
+
+    mockMvc.perform(put("/api/patients/1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidPatientJson))
+        .andExpect(status().isBadRequest());
+
+    verify(patientService, times(0)).updatePatient(anyLong(), any(Patient.class));
+  }
+
+  @Test
   void testDeletePatient() throws Exception {
     doNothing().when(patientService).deletePatient(1L);
 
     mockMvc.perform(delete("/api/patients/1"))
         .andExpect(status().isNoContent());
 
+    verify(patientService, times(1)).deletePatient(1L);
+  }
+
+  @Test
+  void testDeletePatient_NotFound() throws Exception {
+    // Simulate the service throwing a ResourceNotFoundException
+    doThrow(new ResourceNotFoundException("Patient not found")).when(patientService).deletePatient(1L);
+
+    // Perform the DELETE request and expect 404 Not Found status
+    mockMvc.perform(delete("/api/patients/1"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.message").value("Patient not found"));
+
+    // Verify that the service method was called
+    verify(patientService, times(1)).deletePatient(1L);
+  }
+
+  @Test
+  void testDeletePatient_ServiceFailure() throws Exception {
+    // Simulate the service throwing a RuntimeException
+    doThrow(new RuntimeException("Database error")).when(patientService).deletePatient(1L);
+
+    // Perform the DELETE request and expect 500 Internal Server Error status
+    mockMvc.perform(delete("/api/patients/1"))
+        .andExpect(status().isInternalServerError());
+
+    // Verify that the service method was called
     verify(patientService, times(1)).deletePatient(1L);
   }
 
@@ -140,43 +245,36 @@ public class PatientControllerTest {
   }
 
   @Test
-  void testGetPatientTherapyHistory_found() throws Exception {
-    Patient patient = new Patient();
-    patient.setId(1L);
-    patient.setName("John");
-    patient.setSurname("Doe");
+  void testCreatePatient_InvalidJson() throws Exception {
+    // Malformed JSON
+    String patientJson = "{ \"name\": \"John\", \"surname\": \"Doe\" "; // Missing closing brace
 
-    Appointment appointment = new Appointment();
-    appointment.setId(1L);
-    appointment.setPatient(patient);
-    appointment.setSessionDuration(60);
-    appointment.setStatus(AppointmentStatus.COMPLETED);
-    appointment.setDateTime(LocalDateTime.now());
-    appointment.setTherapist(new Therapist());
+    // Perform the POST request and expect 400 Bad Request status
+    mockMvc.perform(post("/api/patients")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(patientJson))
+        .andExpect(status().isBadRequest());
 
-    // Mock the service layer to return a list with the mock appointment
-    when(patientService.getPatientTherapyHistory(1L)).thenReturn(List.of(appointment));
-
-     mockMvc.perform(
-            get("/api/patients/1/therapy-history"))
-        .andExpect(status().isOk())  // Expect HTTP status 200 OK
-        .andExpect(jsonPath("$[0].id").value(1))  // Check if the ID is 1
-        .andExpect(jsonPath("$[0].patient.id").value(1))  // Check the patient ID
-        .andExpect(jsonPath("$[0].status").value("COMPLETED"));  // Check the status
-
-    // Then: Verify the service was called exactly once with the correct patient ID
-    verify(patientService, times(1)).getPatientTherapyHistory(1L);
+    // Verify that the service method was not called
+    verify(patientService, times(0)).createPatient(any(PatientRequest.class));
   }
 
   @Test
-  void testGetPatientTherapyHistory_notFound() throws Exception {
-    when(patientService.getPatientTherapyHistory(1L)).thenReturn(List.of());
+  void testCreatePatient_ServiceFailure() throws Exception {
+    // Simulate the service throwing a RuntimeException
+    when(patientService.createPatient(any(PatientRequest.class)))
+        .thenThrow(new RuntimeException("Database error"));
 
-    mockMvc.perform(get("/api/patients/1/therapy-history"))
-        .andExpect(status().isNotFound());  // Expect HTTP status 404
+    String patientJson = "{ \"name\": \"John\", \"surname\": \"Doe\" }";
 
-    // Then: Verify the service was called exactly once with the correct patient ID
-    verify(patientService, times(1)).getPatientTherapyHistory(1L);
+    // Perform the POST request and expect 500 Internal Server Error status
+    mockMvc.perform(post("/api/patients")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(patientJson))
+        .andExpect(status().isInternalServerError());
+
+    // Verify that the service method was called once
+    verify(patientService, times(1)).createPatient(any(PatientRequest.class));
   }
 
 

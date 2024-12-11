@@ -6,6 +6,7 @@ import org.dci.theratrack.exceptions.InvalidRequestException;
 import org.dci.theratrack.exceptions.ResourceNotFoundException;
 import org.dci.theratrack.repository.DiagnosisRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +26,7 @@ public class DiagnosisService {
     return diagnosisRepository.findById(diagnosisId)
         .orElseThrow(() -> new ResourceNotFoundException("Diagnosis not found with ID: " + diagnosisId));
   }
+
   public List<Diagnosis> getDiagnoses() {
     return diagnosisRepository.findAll();
   }
@@ -57,11 +59,11 @@ public class DiagnosisService {
     }
 
     // Check if the diagnosis exists before updating
-    if (!diagnosisRepository.existsById(diagnosis.getId())) {
+    try {
+      return diagnosisRepository.save(diagnosis);
+    } catch (Exception e) {
       throw new ResourceNotFoundException("Diagnosis not found with ID: " + diagnosis.getId());
     }
-
-    return diagnosisRepository.save(diagnosis);
   }
 
   /**
@@ -71,9 +73,10 @@ public class DiagnosisService {
    * @throws ResourceNotFoundException if the diagnosis does not exist
    */
   public void deleteDiagnosis(Long diagnosisId) {
-    if (!diagnosisRepository.existsById(diagnosisId)) {
+    try {
+      diagnosisRepository.deleteById(diagnosisId);
+    } catch (Exception e) {
       throw new ResourceNotFoundException("Diagnosis not found with ID: " + diagnosisId);
     }
-    diagnosisRepository.deleteById(diagnosisId);
   }
 }

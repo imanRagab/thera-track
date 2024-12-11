@@ -40,6 +40,9 @@ public class TreatmentService {
    * @throws ResourceNotFoundException if the treatment is not found
    */
   public Treatment getTreatment(Long id) {
+    if (id == null) {
+      throw new IllegalArgumentException("Treatment ID cannot be null.");
+    }
     return treatmentRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Treatment not found with ID: " + id));
   }
