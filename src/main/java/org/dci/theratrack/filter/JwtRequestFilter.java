@@ -1,6 +1,7 @@
 package org.dci.theratrack.filter;
 
 import io.jsonwebtoken.Claims;
+import java.util.List;
 import org.dci.theratrack.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +19,7 @@ import java.util.Collections;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
+
 
     @Autowired
     private JwtUtil jwtUtil;

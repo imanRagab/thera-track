@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @Service
 public class AppointmentService {
@@ -131,13 +132,6 @@ public class AppointmentService {
         .orElseThrow(
             () -> new ResourceNotFoundException("Appointment not found with ID: " + appointmentId));
 
-    modelMapper = new ModelMapper(); // Manual initialization, why its not initialised based on AppConfig?
-
-// Configure ModelMapper to skip the ID field
-    modelMapper.createTypeMap(Appointment.class, Appointment.class)
-        .addMappings(mapper -> mapper.skip(Appointment::setId));
-
-    // Map updatedAppointment fields to existingAppointment
     modelMapper.map(updatedAppointment, existingAppointment);
 
     // Handle associations explicitly if needed

@@ -54,6 +54,12 @@ public class Therapist {
   @Column(nullable = true, unique = true)
   private String email;
 
+  @Size(max = 500)
+  @Column(length = 500)
+  private String address;
+
+
+
   @Pattern(regexp = "^\\+?[0-9]{10,15}$")
   @Column(nullable = true, length = 15)
   private String phone;
