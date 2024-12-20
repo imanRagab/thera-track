@@ -18,7 +18,7 @@ public class TherapistController {
     private TherapistService therapistService;
 
     @PostMapping
-    public ResponseEntity<Therapist> createTherapist(@Valid @RequestBody TherapistRequest request) {
+    public ResponseEntity<Therapist> createTherapist(@RequestBody @Valid TherapistRequest request) {
         Therapist createdTherapist = therapistService.createTherapist(request);
         return ResponseEntity.ok(createdTherapist);
     }
@@ -35,7 +35,7 @@ public class TherapistController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Therapist> updateTherapist(@PathVariable Long id, @RequestBody Therapist therapist) {
+    public ResponseEntity<Therapist> updateTherapist(@PathVariable Long id, @RequestBody @Valid Therapist therapist) {
         return ResponseEntity.ok(therapistService.updateTherapist(id, therapist));
     }
 

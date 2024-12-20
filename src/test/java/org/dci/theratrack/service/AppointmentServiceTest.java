@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,52 +24,91 @@ import org.dci.theratrack.enums.AppointmentStatus;
 import org.dci.theratrack.exceptions.InvalidRequestException;
 import org.dci.theratrack.exceptions.ResourceNotFoundException;
 import org.dci.theratrack.repository.AppointmentRepository;
+import org.dci.theratrack.repository.PatientRepository;
+import org.dci.theratrack.repository.TherapistRepository;
+import org.dci.theratrack.request.AppointmentRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @ExtendWith(MockitoExtension.class)
-public class AppointmentServiceTest {
+class AppointmentServiceTest {
 
   @Mock
   private AppointmentRepository appointmentRepository;
 
+  @Mock
+  private PatientRepository patientRepository;
+
+  @Mock
+  private TherapistRepository therapistRepository;
+
   @InjectMocks
   private AppointmentService appointmentService;
 
+  private AppointmentRequest appointmentRequest;
   private Appointment appointment;
   private Patient patient;
   private Therapist therapist;
 
   @BeforeEach
   void setUp() {
+    appointmentRequest = new AppointmentRequest();
     appointment = new Appointment();
     appointment.setId(1L);
-    appointment.setDateTime("2023-12-01T10:00:00");
+    appointment.setDateTime(LocalDateTime.of(2023, 12, 1, 10, 0)); // Correct LocalDateTime format
     appointment.setSessionDuration(60);
     appointment.setStatus(AppointmentStatus.PENDING);
 
+    // Initialize the Patient object
     patient = new Patient();
     patient.setId(1L);
     patient.setName("John Doe");
 
+    // Initialize the Therapist object
+    therapist = new Therapist();
+    therapist.setId(1L);
+    therapist.setName("Jane Smith");
+
+    // Assign Therapist and Patient to the appointment
     appointment.setTherapist(therapist);
     appointment.setPatient(patient);
-    appointment.setAppointmentDate(LocalDateTime.now().plusDays(1));
+
+    // Add Appointment, Patient, and Therapist to the AppointmentRequest object
+    appointmentRequest.setAppointment(appointment);
+    appointmentRequest.setPatient(patient);
+    appointmentRequest.setTherapist(therapist);
   }
 
   @Test
   void testCreateAppointment() {
+    // Mock the repository calls
+    when(patientRepository.findById(appointmentRequest.getPatient().getId()))
+        .thenReturn(Optional.of(patient));
+
+    when(therapistRepository.findById(appointmentRequest.getTherapist().getId()))
+        .thenReturn(Optional.of(therapist));
+
     when(appointmentRepository.save(appointment)).thenReturn(appointment);
 
-    Appointment result = appointmentService.createAppointment(appointment);
+    // Call the method under test
+    Appointment result = appointmentService.createAppointment(appointmentRequest);
 
+    // Verify the results
     assertNotNull(result);
     assertEquals(appointment.getId(), result.getId());
     assertEquals(appointment.getPatient().getId(), result.getPatient().getId());
+    assertEquals(appointment.getTherapist().getId(), result.getTherapist().getId());
+    assertEquals(AppointmentStatus.PENDING, result.getStatus()); // Ensure the default status is set
+
+    // Verify interactions with mocks
+    verify(patientRepository, times(1)).findById(appointmentRequest.getPatient().getId());
+    verify(therapistRepository, times(1)).findById(appointmentRequest.getTherapist().getId());
     verify(appointmentRepository, times(1)).save(appointment);
   }
 
@@ -99,12 +138,23 @@ public class AppointmentServiceTest {
 
   @Test
   void testGetAppointment() {
-    when(appointmentRepository.findById(1L)).thenReturn(Optional.ofNullable(appointment));
+    when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
 
     Appointment result = appointmentService.getAppointment(1L);
 
-    assertNotNull(result);
-    assertEquals(appointment.getId(), result.getId());
+    assertNotNull(result, "The appointment should not be null");
+    assertEquals(appointment.getId(), result.getId(), "The appointment ID should match");
+    assertEquals(appointment.getDateTime(), result.getDateTime(),
+        "The appointment dateTime should match");
+    assertEquals(appointment.getSessionDuration(), result.getSessionDuration(),
+        "The appointment duration should match");
+    assertEquals(appointment.getStatus(), result.getStatus(),
+        "The appointment status should match");
+    assertEquals(appointment.getPatient().getId(), result.getPatient().getId(),
+        "The appointment patient should match");
+    assertEquals(appointment.getTherapist().getId(), result.getTherapist().getId(),
+        "The appointment therapist should match");
+
     verify(appointmentRepository, times(1)).findById(1L);
   }
 
@@ -125,7 +175,7 @@ public class AppointmentServiceTest {
 
     when(appointmentRepository.getAppointmentsByPatientId(1L)).thenReturn(appointments);
 
-    List<Appointment> result = appointmentService.getAppointmentsByPatient(patient);
+    List<Appointment> result = appointmentService.getAppointmentsByPatientId(1L);
 
     assertNotNull(result);
     assertEquals(1, result.size());
@@ -166,7 +216,7 @@ public class AppointmentServiceTest {
   void testGetAppointmentsByPatientNoAppointments(){
     when(appointmentRepository.getAppointmentsByPatientId(1L)).thenReturn(Collections.emptyList());
 
-    List<Appointment> result = appointmentService.getAppointmentsByPatient(patient);
+    List<Appointment> result = appointmentService.getAppointmentsByPatientId(1L);
 
     assertNotNull(result);
     assertTrue(result.isEmpty());
@@ -175,72 +225,125 @@ public class AppointmentServiceTest {
 
   @Test
   void testUpdateAppointment() {
-    // Arrange: Set up a valid appointment
-    appointment.setId(1L);
-    when(appointmentRepository.existsById(1L)).thenReturn(true);
-    when(appointmentRepository.save(appointment)).thenReturn(appointment);
+    // Mock the repository calls to find the existing appointment
+    when(appointmentRepository.findById(appointment.getId()))
+        .thenReturn(Optional.of(appointment));
 
-    // Act: Call the service method
-    Appointment result = appointmentService.updateAppointment(appointment);
+    // Mock patient and therapist repository calls if their IDs are present in updatedAppointment
+    when(patientRepository.findById(patient.getId())).thenReturn(Optional.of(patient));
+    when(therapistRepository.findById(therapist.getId())).thenReturn(Optional.of(therapist));
 
-    // Assert: Verify the result
+    // Mock the save operation
+    when(appointmentRepository.save(any(Appointment.class))).thenReturn(appointment);
+
+    // Create a new updatedAppointment object
+    Appointment updatedAppointment = new Appointment();
+    updatedAppointment.setDateTime(LocalDateTime.of(2023, 12, 2, 14, 0)); // Change date/time
+    updatedAppointment.setSessionDuration(90); // Change duration
+    updatedAppointment.setStatus(AppointmentStatus.CONFIRMED); // Change status
+
+    Patient updatedPatient = new Patient();
+    updatedPatient.setId(patient.getId()); // Reuse the existing patient ID
+    updatedAppointment.setPatient(updatedPatient);
+
+    Therapist updatedTherapist = new Therapist();
+    updatedTherapist.setId(therapist.getId()); // Reuse the existing therapist ID
+    updatedAppointment.setTherapist(updatedTherapist);
+
+    // Call the method under test
+    Appointment result = appointmentService.updateAppointment(appointment.getId(), updatedAppointment);
+
+    // Verify the results
     assertNotNull(result);
-    assertEquals(appointment, result);
-    verify(appointmentRepository, times(1)).existsById(1L);
-    verify(appointmentRepository, times(1)).save(appointment);
+    assertEquals(updatedAppointment.getDateTime(), result.getDateTime());
+    assertEquals(updatedAppointment.getSessionDuration(), result.getSessionDuration());
+    assertEquals(updatedAppointment.getStatus(), result.getStatus());
+    assertEquals(patient.getId(), result.getPatient().getId());
+    assertEquals(therapist.getId(), result.getTherapist().getId());
+
+    // Verify interactions with mocks
+    verify(appointmentRepository, times(1)).findById(appointment.getId());
+    verify(patientRepository, times(1)).findById(patient.getId());
+    verify(therapistRepository, times(1)).findById(therapist.getId());
+    verify(appointmentRepository, times(1)).save(any(Appointment.class));
   }
 
   @Test
-  void testUpdateAppointmentInvalidRequestNullAppointment() {
-    // Act & Assert: Call the service method with null and expect an exception
+  void testUpdateAppointment_NullUpdatedAppointment() {
+    // Call the method with a null updatedAppointment and expect an exception
     InvalidRequestException exception = assertThrows(
         InvalidRequestException.class,
-        () -> appointmentService.updateAppointment(null)
+        () -> appointmentService.updateAppointment(appointment.getId(), null)
     );
 
-    // Verify the exception message
-    assertEquals("Appointment or appointment ID cannot be null.", exception.getMessage());
-
-    // Verify no repository interaction occurs
-    verifyNoInteractions(appointmentRepository);
+    assertEquals("Updated appointment cannot be null.", exception.getMessage());
+    verifyNoInteractions(appointmentRepository, patientRepository, therapistRepository);
   }
 
   @Test
-  void testUpdateAppointmentInvalidRequestNullId() {
-    // Arrange: Set up an appointment with null ID
-    appointment.setId(null);
+  void testUpdateAppointment_AppointmentNotFound() {
+    // Mock repository call to return empty for the appointment ID
+    when(appointmentRepository.findById(appointment.getId())).thenReturn(Optional.empty());
 
-    // Act & Assert: Call the service method and expect an exception
-    InvalidRequestException exception = assertThrows(
-        InvalidRequestException.class,
-        () -> appointmentService.updateAppointment(appointment)
-    );
-
-    // Verify the exception message
-    assertEquals("Appointment or appointment ID cannot be null.", exception.getMessage());
-
-    // Verify no repository interaction occurs
-    verifyNoInteractions(appointmentRepository);
-  }
-
-  @Test
-  void testUpdateAppointmentNotFound() {
-    // Arrange: Simulate the appointment ID not existing
-    appointment.setId(1L);
-    when(appointmentRepository.existsById(1L)).thenReturn(false);
-
-    // Act & Assert: Call the service method and expect an exception
+    // Call the method and expect a ResourceNotFoundException
     ResourceNotFoundException exception = assertThrows(
         ResourceNotFoundException.class,
-        () -> appointmentService.updateAppointment(appointment)
+        () -> appointmentService.updateAppointment(appointment.getId(), appointment)
     );
 
-    // Verify the exception message
-    assertEquals("Appointment not found with ID: 1", exception.getMessage());
+    assertEquals("Appointment not found with ID: " + appointment.getId(), exception.getMessage());
+    verify(appointmentRepository, times(1)).findById(appointment.getId());
+    verifyNoInteractions(patientRepository, therapistRepository);
+  }
 
-    // Verify repository interaction
-    verify(appointmentRepository, times(1)).existsById(1L);
-    verify(appointmentRepository, never()).save(any());
+  @Test
+  void testUpdateAppointment_PatientNotFound() {
+    // Mock repository calls for the existing appointment
+    when(appointmentRepository.findById(appointment.getId())).thenReturn(Optional.of(appointment));
+
+    // Mock patient repository to return empty for the patient ID
+    when(patientRepository.findById(patient.getId())).thenReturn(Optional.empty());
+
+    // Create updatedAppointment with a patient ID that doesn't exist
+    Appointment updatedAppointment = new Appointment();
+    updatedAppointment.setPatient(new Patient());
+    updatedAppointment.getPatient().setId(patient.getId()); // Non-existent ID
+
+    // Call the method and expect a ResourceNotFoundException
+    ResourceNotFoundException exception = assertThrows(
+        ResourceNotFoundException.class,
+        () -> appointmentService.updateAppointment(appointment.getId(), updatedAppointment)
+    );
+
+    assertEquals("Patient not found with ID: " + patient.getId(), exception.getMessage());
+    verify(appointmentRepository, times(1)).findById(appointment.getId());
+    verify(patientRepository, times(1)).findById(patient.getId());
+    verifyNoInteractions(therapistRepository);
+  }
+
+  @Test
+  void testUpdateAppointment_TherapistNotFound() {
+    // Mock repository calls for the existing appointment
+    when(appointmentRepository.findById(appointment.getId())).thenReturn(Optional.of(appointment));
+
+    // Mock therapist repository to return empty for the therapist ID
+    when(therapistRepository.findById(therapist.getId())).thenReturn(Optional.empty());
+
+    // Create updatedAppointment with a therapist ID that doesn't exist
+    Appointment updatedAppointment = new Appointment();
+    updatedAppointment.setTherapist(new Therapist());
+    updatedAppointment.getTherapist().setId(therapist.getId()); // Non-existent ID
+
+    // Call the method and expect a ResourceNotFoundException
+    ResourceNotFoundException exception = assertThrows(
+        ResourceNotFoundException.class,
+        () -> appointmentService.updateAppointment(appointment.getId(), updatedAppointment)
+    );
+
+    assertEquals("Therapist not found with ID: " + therapist.getId(), exception.getMessage());
+    verify(appointmentRepository, times(1)).findById(appointment.getId());
+    verify(therapistRepository, times(1)).findById(therapist.getId());
+    verifyNoInteractions(patientRepository);
   }
 
   @Test

@@ -1,5 +1,6 @@
 package org.dci.theratrack.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,9 +45,11 @@ public class Diagnosis {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "patient_id", nullable = false) // Ensures patient_id cannot be null at the database level
+  @JsonIgnore
   private Patient patient;
 
   @OneToOne(mappedBy = "diagnosis", fetch = FetchType.LAZY)
+  @JsonIgnore
   private Treatment treatment;
 
 }

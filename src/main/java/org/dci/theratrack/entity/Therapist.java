@@ -1,6 +1,8 @@
 package org.dci.theratrack.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,6 +54,12 @@ public class Therapist {
   @Column(nullable = true, unique = true)
   private String email;
 
+  @Size(max = 500)
+  @Column(length = 500)
+  private String address;
+
+
+
   @Pattern(regexp = "^\\+?[0-9]{10,15}$")
   @Column(nullable = true, length = 15)
   private String phone;
@@ -65,9 +73,11 @@ public class Therapist {
   private LocalDate birthDate;
 
   @ManyToMany(mappedBy = "therapists")
+  @JsonIgnore
   private List<Patient> patients;
 
   @OneToMany(mappedBy = "therapist", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonIgnore
   private List<Appointment> appointments;
 
 

@@ -23,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByUsername("admin").isEmpty()) {
             // Create default admin user
             User adminUser = new User();
+            adminUser.setId(0L);
             adminUser.setUsername("admin");
             adminUser.setPassword(passwordEncoder.encode("admin123")); // Default password
             adminUser.setUserRole(UserRole.ADMIN); // Assign ADMIN role

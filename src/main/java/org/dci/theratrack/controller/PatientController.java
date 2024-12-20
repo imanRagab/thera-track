@@ -1,5 +1,6 @@
 package org.dci.theratrack.controller;
 
+import jakarta.validation.Valid;
 import org.dci.theratrack.entity.Patient;
 import org.dci.theratrack.request.PatientRequest;
 import org.dci.theratrack.service.PatientService;
@@ -17,7 +18,7 @@ public class PatientController {
   private PatientService patientService;
 
   @PostMapping
-  public ResponseEntity<Patient> createPatient(@RequestBody PatientRequest request) {
+  public ResponseEntity<Patient> createPatient(@RequestBody @Valid PatientRequest request) {
     return ResponseEntity.ok(patientService.createPatient(request));
   }
 
@@ -33,7 +34,7 @@ public class PatientController {
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @RequestBody Patient updatedPatient) {
+  public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @RequestBody @Valid Patient updatedPatient) {
     return ResponseEntity.ok(patientService.updatePatient(id, updatedPatient));
   }
 

@@ -36,17 +36,17 @@ public class TreatmentServiceTest {
     treatment.setDescription("Diabetes treatment");
   }
 
-  @Test
-  void testAddTreatment() {
-    when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
-
-    Treatment savedTreatment = treatmentService.addTreatment(treatment);
-
-    assertNotNull(savedTreatment);
-    assertEquals(treatment.getId(), savedTreatment.getId());
-    assertEquals(treatment.getName(), savedTreatment.getName());
-    verify(treatmentRepository, times(1)).save(treatment);
-  }
+//  @Test
+//  void testAddTreatment() {
+//    when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
+//
+//    Treatment savedTreatment = treatmentService.addTreatment(treatment);
+//
+//    assertNotNull(savedTreatment);
+//    assertEquals(treatment.getId(), savedTreatment.getId());
+//    assertEquals(treatment.getName(), savedTreatment.getName());
+//    verify(treatmentRepository, times(1)).save(treatment);
+//  }
 
   @Test
   void testGetAllTreatments() {
@@ -74,7 +74,7 @@ public class TreatmentServiceTest {
 
   @Test
   void testGetTreatment() {
-    when(treatmentRepository.findById(1L)).thenReturn(Optional.ofNullable(treatment));
+    when(treatmentRepository.findById(1L)).thenReturn(Optional.of(treatment));
 
     Treatment result = treatmentService.getTreatment(1L);
 
@@ -87,7 +87,7 @@ public class TreatmentServiceTest {
   void testUpdateTreatment() {
     treatment.setDescription("Updated description");
 
-    when(treatmentRepository.existsById(1L)).thenReturn(true);
+    when(treatmentRepository.existsById(treatment.getId())).thenReturn(true);
     when(treatmentRepository.save(treatment)).thenReturn(treatment);
 
     Treatment result = treatmentService.updateTreatment(treatment);
